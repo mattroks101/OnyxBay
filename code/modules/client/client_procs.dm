@@ -280,6 +280,21 @@
 
 	chatOutput.start()
 
+	// Maptext tooltip
+	tooltip = new()
+	tooltip.icon = 'icons/misc/static.dmi'
+	tooltip.icon_state = "transparent"
+	tooltip.screen_loc = "NORTH,WEST+25%"
+	tooltip.maptext_width = 256
+	tooltip.maptext_x = 0
+	tooltip.plane = HUD_PLANE
+	tooltip.layer = UNDER_HUD_LAYER
+
+	if (get_preference_value(/datum/client_preference/tooltip) == GLOB.PREF_NO)
+		tooltip.alpha = 0
+
+	screen += tooltip
+
 	// Change position only if it not default
 	if (get_preference_value(/datum/client_preference/chat_position) == GLOB.PREF_YES)
 		update_chat_position(TRUE)
@@ -287,12 +302,21 @@
 	if(get_preference_value(/datum/client_preference/fullscreen_mode) != GLOB.PREF_NO)
 		toggle_fullscreen(get_preference_value(/datum/client_preference/fullscreen_mode))
 
-/*	if(holder)
+	if(holder)
 		src.control_freak = 0 //Devs need 0 for profiler access
-*/
-	//////////////
-	//DISCONNECT//
-	//////////////
+
+
+/client/MouseEntered(atom/object, location, control, params)
+	if (tooltip)
+		screen |= tooltip
+		tooltip.maptext = ""
+
+		if (GAME_STATE > RUNLEVEL_SETUP)
+			tooltip.maptext = "<center style=\"text-shadow: 1px 1px 2px black;\">[uppertext(object.name)]</center>"
+
+//////////////
+//DISCONNECT//
+//////////////
 /client/Del()
 	ticket_panels -= src
 	if(holder)

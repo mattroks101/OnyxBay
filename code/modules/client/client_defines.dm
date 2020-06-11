@@ -61,3 +61,5 @@
 
 	//So admins know why it isn't working - Used to determine what other accounts previously logged in from this computer id
 	var/related_accounts_cid = "Requires database"
+
+	var/obj/screen/tooltip = null

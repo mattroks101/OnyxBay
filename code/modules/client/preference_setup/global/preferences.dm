@@ -219,6 +219,15 @@ var/list/_client_preferences_by_type
 	if (preference_mob.client)
 		preference_mob.UpdatePlanes()
 
+/datum/client_preference/tooltip
+	description = "Toggle Tooltip"
+	key = "TOOLTIP"
+	options = list(GLOB.PREF_NO, GLOB.PREF_YES)
+
+/datum/client_preference/tooltip/changed(mob/preference_mob, new_value)
+	if (!preference_mob.client)
+		return
+
 /datum/client_preference/fullscreen_mode
 	description = "Fullscreen Mode"
 	key = "FULLSCREEN"

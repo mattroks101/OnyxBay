@@ -18,6 +18,7 @@
 	boxes.icon_state = "block"
 	boxes.screen_loc = "7,7 to 10,8"
 	boxes.layer = HUD_BASE_LAYER
+	boxes.plane = HUD_PLANE
 
 	storage_start = new /obj/screen/storage(  )
 	storage_start.SetName("storage")
@@ -25,33 +26,40 @@
 	storage_start.icon_state = "storage_start"
 	storage_start.screen_loc = "7,7 to 10,8"
 	storage_start.layer = HUD_BASE_LAYER
+	storage_start.plane = HUD_PLANE
 	storage_continue = new /obj/screen/storage(  )
 	storage_continue.SetName("storage")
 	storage_continue.master = storage
 	storage_continue.icon_state = "storage_continue"
 	storage_continue.screen_loc = "7,7 to 10,8"
 	storage_continue.layer = HUD_BASE_LAYER
+	storage_continue.plane = HUD_PLANE
 	storage_end = new /obj/screen/storage(  )
 	storage_end.SetName("storage")
 	storage_end.master = storage
 	storage_end.icon_state = "storage_end"
 	storage_end.screen_loc = "7,7 to 10,8"
 	storage_end.layer = HUD_BASE_LAYER
+	storage_end.plane = HUD_PLANE
 
 	stored_start = new /obj //we just need these to hold the icon
 	stored_start.icon_state = "stored_start"
 	stored_start.layer = HUD_BASE_LAYER
+	stored_start.plane = HUD_PLANE
 	stored_continue = new /obj
 	stored_continue.icon_state = "stored_continue"
 	stored_continue.layer = HUD_BASE_LAYER
+	stored_continue.plane = HUD_PLANE
 	stored_end = new /obj
 	stored_end.icon_state = "stored_end"
 	stored_end.layer = HUD_BASE_LAYER
+	stored_end.plane = HUD_PLANE
 
 	closer = new /obj/screen/close(  )
 	closer.master = storage
-	closer.icon_state = "x"
+	closer.icon_state = "hudclose"
 	closer.layer = HUD_BASE_LAYER
+	closer.plane = HUD_PLANE
 
 /datum/storage_ui/default/Destroy()
 	close_all()
