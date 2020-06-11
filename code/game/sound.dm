@@ -192,7 +192,7 @@ GLOBAL_LIST_INIT(pull_wood_sound,list('sound/effects/pulling/pull_wood1.ogg','so
 
 GLOBAL_LIST_INIT(drink_pickup_sound,list('sound/effects/using/bottles/pickup1.ogg','sound/effects/using/bottles/pickup2.ogg'))
 
-GLOBAL_LIST_INIT(drink_sound,list('sound/effects/eating/drink1.ogg'))
+GLOBAL_LIST_INIT(drink_sound,list('sound/effects/eating/drink1.ogg','sound/effects/eating/drink2.ogg', 'sound/effects/eating/drink3.ogg', 'sound/effects/eating/drink4.ogg', 'sound/effects/eating/drink5.ogg'))
 
 GLOBAL_LIST_INIT(eat_sound,list('sound/effects/eating/eat1.ogg','sound/effects/eating/eat2.ogg','sound/effects/eating/eat3.ogg',
 								'sound/effects/eating/eat4.ogg','sound/effects/eating/eat5.ogg'))
