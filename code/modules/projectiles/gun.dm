@@ -53,6 +53,7 @@
 	attack_verb = list("struck", "hit", "bashed")
 	zoomdevicename = "scope"
 
+	var/automatic = 0
 	var/burst = 1
 	var/fire_delay = 6 	//delay after shooting before the gun can be used again
 	var/burst_delay = 2	//delay between shots, if firing in bursts
@@ -319,7 +320,7 @@
 
 	//Accuracy modifiers
 	P.accuracy = accuracy + acc_mod
-	P.dispersion = disp_mod
+	P.dispersion = disp_mod + (dispersion_modifyer / 2)//disp_mod see in click.dm
 
 	//accuracy bonus from aiming
 	if (aim_targets && (target in aim_targets))
@@ -327,6 +328,22 @@
 		//Kinda balanced by fact you need like 2 seconds to aim
 		//As opposed to no-delay pew pew
 		P.accuracy += 2
+
+	user.dispersion_mouse_display_number = P.dispersion
+	to_chat(world, "[P.dispersion]") //Debug.
+	//Boy this sure looks ugly, but unlike Eris' method for updating the mouse icon, this does not cause severe mouse flickering.
+	if(user.dispersion_mouse_display_number > 0 && user.dispersion_mouse_display_number < 0.2)//These numbers can be tweaked
+		user.client.mouse_pointer_icon = 'icons/effects/standard/standard2.dmi'
+	else if(user.dispersion_mouse_display_number >= 0.2 && user.dispersion_mouse_display_number < 0.4)//But in general with the current dispersion system, anything above 10 is really innacurate.
+		user.client.mouse_pointer_icon = 'icons/effects/standard/standard3.dmi'
+	else if(user.dispersion_mouse_display_number >= 0.4 && user.dispersion_mouse_display_number < 0.6)//So we give 10 the largest reticule, and then de-increment along there.
+		user.client.mouse_pointer_icon = 'icons/effects/standard/standard4.dmi'
+	else if(user.dispersion_mouse_display_number >= 0.6 && user.dispersion_mouse_display_number < 1)
+		user.client.mouse_pointer_icon = 'icons/effects/standard/standard5.dmi'
+	else if(user.dispersion_mouse_display_number >= 1)
+		user.client.mouse_pointer_icon = 'icons/effects/standard/standard6.dmi'
+	else
+		user.client.mouse_pointer_icon = 'icons/effects/standard/standard1.dmi'
 
 //does the actual launching of the projectile
 /obj/item/weapon/gun/proc/process_projectile(obj/projectile, mob/user, atom/target, target_zone, params=null)
@@ -470,3 +487,109 @@
 	if(new_mode)
 		to_chat(user, "<span class='notice'>\The [src] is now set to [new_mode.name].</span>")
 
+
+
+///////////////////////////
+/////AUTOMATIC CLICKS//////
+/////ONLY USED FOR GUNS////
+///////////////////////////
+
+var/dispersion_modifyer = 0 //while(automatic) dispersion_mod++; dispersion = 0.1 + dispersion_mod;
+
+/mob
+	var/dispersion_mouse_display_number = 0
+
+/client
+	var/list/selected_target[2]
+
+/client/MouseDown(object, location, control, params)
+	var/delay = mob.CanMobAutoclick(object, location, params)
+	if(delay)
+		selected_target[1] = object
+		selected_target[2] = params
+		while(selected_target[1])
+			dispersion_modifyer += 0.04
+			Click(selected_target[1], location, control, selected_target[2])
+			sleep(delay)
+		dispersion_modifyer = 0
+		usr.dispersion_mouse_display_number = 0
+
+/client/MouseUp(object, location, control, params)
+	selected_target[1] = null
+
+
+/client/MouseDrag(src_object,atom/over_object,src_location,over_location,src_control,over_control,params)
+	if(selected_target[1] && over_object.IsAutoclickable())
+		selected_target[1] = over_object
+		selected_target[2] = params
+
+/mob/proc/CanMobAutoclick(object, location, params)
+	return
+
+/mob/living/carbon/CanMobAutoclick(atom/object, location, params)
+	if(!object.IsAutoclickable())
+		return
+	var/obj/item/h = get_active_hand()
+	if(h)
+		. = h.CanItemAutoclick(object, location, params)
+
+/obj/item/proc/CanItemAutoclick(object, location, params)
+	return
+
+/obj/item/weapon/gun/CanItemAutoclick(object, location, params)
+	. = automatic
+
+/atom/proc/IsAutoclickable()
+	. = 1
+
+/obj/screen/IsAutoclickable()
+	. = 0
+
+//A cool pointer for your gun.
+/obj/item/weapon/gun/pickup(mob/user)
+	if(user.client)
+		user.client.mouse_pointer_icon = 'icons/effects/standard/standard1.dmi'
+	update_icon()
+	..()
+/obj/item/weapon/gun/dropped(mob/user)
+	..()
+	if(user.client)
+		user.client.mouse_pointer_icon = null
+	update_icon()
+
+/obj/item/weapon/gun/equipped(mob/user)
+	..()
+	if(user.client)
+		user.client.mouse_pointer_icon = null
+	update_icon()
+
+
+/mob/living/carbon/human/swap_hand()
+	..()
+	update_aim_icon()
+
+/mob/proc/update_aim_icon()
+	if(!client)
+		return
+
+	if(istype(get_active_hand(),/obj/item/weapon/gun))
+		if(dispersion_mouse_display_number > 0 && dispersion_mouse_display_number < 2)// else
+			client.mouse_pointer_icon = 'icons/effects/standard/standard2.dmi'//'icons/misc/aim.dmi'
+		else if(dispersion_mouse_display_number >= 2 && dispersion_mouse_display_number < 4)
+			client.mouse_pointer_icon = 'icons/effects/standard/standard3.dmi'
+		else if(dispersion_mouse_display_number >= 4 && dispersion_mouse_display_number < 6)
+			client.mouse_pointer_icon = 'icons/effects/standard/standard4.dmi'
+		else if(dispersion_mouse_display_number >= 6 && dispersion_mouse_display_number < 10)
+			client.mouse_pointer_icon = 'icons/effects/standard/standard5.dmi'
+		else if(dispersion_mouse_display_number >= 10)
+			client.mouse_pointer_icon = 'icons/effects/standard/standard6.dmi'
+		else
+			client.mouse_pointer_icon = 'icons/effects/standard/standard1.dmi'
+		if(dispersion_mouse_display_number > 20)
+			dispersion_mouse_display_number = 20
+		if(dispersion_mouse_display_number <= 0)
+			dispersion_mouse_display_number = 0
+		dispersion_mouse_display_number -= 10
+	else
+		if(client)
+			client.mouse_pointer_icon = null

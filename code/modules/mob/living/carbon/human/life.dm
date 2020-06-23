@@ -88,6 +88,8 @@
 
 		handle_poise()
 
+		update_aim_icon()
+
 		if(!client && !mind)
 			species.handle_npc(src)
 
