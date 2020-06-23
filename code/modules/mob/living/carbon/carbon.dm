@@ -321,6 +321,7 @@
 
 	//actually throw it!
 	src.visible_message("<span class='warning'>[src] has thrown [item].</span>", range = min(itemsize*2,world.view))
+	playsound(src, 'sound/effects/throw.ogg', 50, 1)
 
 	if(!src.lastarea)
 		src.lastarea = get_area(src.loc)

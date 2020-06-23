@@ -300,7 +300,7 @@ GLOBAL_LIST_INIT(swing_hit_sound,list('sound/effects/fighting/genhit1.ogg', 'sou
 
 GLOBAL_LIST_INIT(hiss_sound,list('sound/voice/hiss1.ogg','sound/voice/hiss2.ogg','sound/voice/hiss3.ogg','sound/voice/hiss4.ogg'))
 GLOBAL_LIST_INIT(page_sound,list('sound/effects/pageturn1.ogg', 'sound/effects/pageturn2.ogg','sound/effects/pageturn3.ogg'))
-GLOBAL_LIST_INIT(fracture_sound,list('sound/effects/bonebreak1.ogg','sound/effects/bonebreak2.ogg','sound/effects/bonebreak3.ogg','sound/effects/bonebreak4.ogg'))
+GLOBAL_LIST_INIT(fracture_sound,list('sound/effects/gore/trauma1.ogg','sound/effects/gore/trauma2.ogg','sound/effects/gore/trauma3.ogg'))
 GLOBAL_LIST_INIT(lighter_sound,list('sound/items/lighter1.ogg','sound/items/lighter2.ogg','sound/items/lighter3.ogg'))
 
 GLOBAL_LIST_INIT(switch_small_sound,list('sound/effects/using/switch/small1.ogg','sound/effects/using/switch/small2.ogg'))
