@@ -165,7 +165,7 @@
 		msg += "[T.He] [T.is] small halfling!\n"
 
 	var/distance = 0
-	if(isghost(user) || user.stat == DEAD) // ghosts can see anything
+	if(isghost(user) || user?.stat == DEAD) // ghosts can see anything
 		distance = 1
 	else
 		distance = get_dist(user,src)
@@ -173,7 +173,7 @@
 		msg += "<span class='warning'>[T.He] [T.is]n't responding to anything around [T.him] and seems to be unconscious.</span>\n"
 		if((stat == DEAD || is_asystole() || src.losebreath) && distance <= 3)
 			msg += "<span class='warning'>[T.He] [T.does] not appear to be breathing.</span>\n"
-		if(ishuman(user) && !user.incapacitated() && Adjacent(user))
+		if(user && ishuman(user) && !user.incapacitated() && Adjacent(user))
 			spawn(0)
 				user.visible_message("<b>\The [user]</b> checks \the [src]'s pulse.", "You check \the [src]'s pulse.")
 				if(do_after(user, 15, src))
@@ -292,7 +292,8 @@
 
 	if(hasHUD(user, HUD_MEDICAL))
 		var/perpname = "wot"
-		var/medical = "None"
+		var/physical = "None"
+		var/mental = "None"
 
 		if(wear_id)
 			if(istype(wear_id,/obj/item/weapon/card/id))
@@ -305,9 +306,11 @@
 
 		var/datum/computer_file/crew_record/R = get_crewmember_record(perpname)
 		if(R)
-			medical = R.get_status()
+			physical = R.get_status_physical()
+			mental = R.get_status_mental()
 
-		msg += "<span class = 'deptradio'>Physical status:</span> <a href='?src=\ref[src];medical=1'>\[[medical]\]</a>\n"
+		msg += "<span class = 'deptradio'>Physical status:</span> <a href='?src=\ref[src];physical=1'>\[[physical]\]</a>\n"
+		msg += "<span class = 'deptradio'>Mental status:</span> <a href='?src=\ref[src];mental=1'>\[[mental]\]</a>\n"
 		msg += "<span class = 'deptradio'>Medical records:</span> <a href='?src=\ref[src];medrecord=`'>\[View\]</a>\n"
 
 
@@ -321,7 +324,7 @@
 			pose = addtext(pose,".") //Makes sure all emotes end with a period.
 		msg += "[T.He] [pose]"
 
-	to_chat(user, jointext(msg, null))
+	return jointext(msg, null)
 
 //Helper procedure. Called by /mob/living/carbon/human/examine() and /mob/living/carbon/human/Topic() to determine HUD access to security and medical records.
 /proc/hasHUD(mob/M as mob, hudtype)

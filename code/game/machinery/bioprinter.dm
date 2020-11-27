@@ -64,7 +64,7 @@
 
 /obj/machinery/organ_printer/examine(mob/user)
 	. = ..()
-	to_chat(user, "<span class='notice'>It is loaded with [stored_matter]/[max_stored_matter] matter units.</span>")
+	. += "\n<span class='notice'>It is loaded with [stored_matter]/[max_stored_matter] matter units.</span>"
 
 /obj/machinery/organ_printer/RefreshParts()
 	print_delay = initial(print_delay)
@@ -139,13 +139,14 @@
 
 /obj/machinery/organ_printer/robot/New()
 	..()
+	products.Add(BP_CELL = list(/obj/item/organ/internal/cell, 25))
 	component_parts += new /obj/item/weapon/circuitboard/roboprinter
 
 /obj/machinery/organ_printer/robot/print_organ(choice)
 	var/obj/item/organ/O = ..()
 	var/obj/item/organ/external/externalOrgan = O
 	if(istype(externalOrgan))
-		externalOrgan.robotize("Hephaestus Industries", just_printed = TRUE)
+		externalOrgan.robotize("Nanotrasen", just_printed = TRUE)
 		// TODO [V] Add other companies and ability to choose from input
 	else
 		O.robotize()

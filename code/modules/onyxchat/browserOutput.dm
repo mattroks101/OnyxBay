@@ -5,7 +5,7 @@ For the main html chat area
 GLOBAL_DATUM_INIT(is_http_protocol, /regex, regex("^https?://"))
 //Precaching a bunch of shit
 GLOBAL_DATUM_INIT(iconCache, /savefile, new("tmp/iconCache.sav")) //Cache of icons for the browser output
-
+GLOBAL_LIST_EMPTY(cookie_match_history)
 //On client, created on login
 /datum/chatOutput
 	var/client/owner	 //client ref
@@ -135,6 +135,11 @@ GLOBAL_DATUM_INIT(iconCache, /savefile, new("tmp/iconCache.sav")) //Cache of ico
 		return
 
 	if(cookie != "none")
+		var/regex/crashy_thingy = regex("^\\s*(\[\\\[\\{\\}\\\]\]\\s*){5,}")
+		if(crashy_thingy.Find(cookie))
+			log_and_message_admins("[key_name(owner)] tried to crash the server using at least 5 \"\[\" in a row. Ban them.")
+			return
+
 		var/list/connData = json_decode(cookie)
 		if (connData && islist(connData) && connData.len > 0 && connData["connData"])
 			connectionHistory = connData["connData"] //lol fuck
@@ -151,6 +156,7 @@ GLOBAL_DATUM_INIT(iconCache, /savefile, new("tmp/iconCache.sav")) //Cache of ico
 			if (found.len > 0)
 				var/msg = "[key_name(src.owner)] has a cookie from a banned account! (Matched: [found["ckey"]], [found["ip"]], [found["compid"]])"
 				//TODO: add a new evasion ban for the CURRENT client details, using the matched row details
+				GLOB.cookie_match_history += list("ckey" = key_name(src.owner),"banned" = found["ckey"])
 				message_admins(msg)
 				log_admin(msg)
 
@@ -176,7 +182,6 @@ GLOBAL_DATUM_INIT(iconCache, /savefile, new("tmp/iconCache.sav")) //Cache of ico
 	if(target == world)
 		target = GLOB.clients
 
-	var/original_message = message
 	if(handle_whitespace)
 		message = replacetext(message, "\n", "<br>")
 		message = replacetext(message, "\t", "[FOURSPACES][FOURSPACES]")
@@ -199,9 +204,6 @@ GLOBAL_DATUM_INIT(iconCache, /savefile, new("tmp/iconCache.sav")) //Cache of ico
 			if (!C)
 				continue
 
-			//Send it to the old style output window.
-			C << original_message
-
 			if(!C.chatOutput || C.chatOutput.broken) // A player who hasn't updated his skin file.
 				continue
 
@@ -216,9 +218,6 @@ GLOBAL_DATUM_INIT(iconCache, /savefile, new("tmp/iconCache.sav")) //Cache of ico
 
 		if (!C)
 			return
-
-		//Send it to the old style output window.
-		C << original_message
 
 		if(!C.chatOutput || C.chatOutput.broken) // A player who hasn't updated his skin file.
 			return

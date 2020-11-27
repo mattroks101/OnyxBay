@@ -39,12 +39,11 @@
 		return
 
 	if(max_length)
-		//testing shows that just looking for > max_length alone will actually cut off the final character if message is precisely max_length, so >= instead
-		if(length_char(input) >= max_length)
-			var/overflow = ((length_char(input)+1) - max_length)
-			to_chat(usr, "<span class='warning'>Your message is too long by [overflow] character\s.</span>")
+		var/input_length = length_char(input)
+		if(input_length > max_length)
+			to_chat(usr, SPAN_WARNING("Your message is too long by [input_length - max_length] character\s."))
 			return
-		input = copytext_char(input, 1, max_length)
+		input = copytext_char(input, 1, max_length+1)
 
 	if(extra)
 		input = replace_characters(input, list("\n"=" ","\t"=" "))
@@ -91,71 +90,96 @@
 /proc/sanitize_filename(t)
 	return sanitize_simple(t, list("\n"="", "\t"="", "/"="", "\\"="", "?"="", "%"="", "*"="", ":"="", "|"="", "\""="", "<"="", ">"=""))
 
-//Filters out undesirable characters from names
-/proc/sanitizeName(input, max_length = MAX_NAME_LEN, allow_numbers = 0, force_first_letter_uppercase = TRUE)
-	if(!input || length_char(input) > max_length)
-		return //Rejects the input if it is null or if it is longer then the max length allowed
+#define NO_CHARS_DETECTED 0
+#define SPACES_DETECTED 1
+#define SYMBOLS_DETECTED 2
+#define NUMBERS_DETECTED 3
+#define LETTERS_DETECTED 4
 
-	var/number_of_alphanumeric	= 0
-	var/last_char_group			= 0
+/**
+  * Filters out undesirable characters from names.
+  *
+  * * strict - return null immidiately instead of filtering out  TODO: port from tg
+  * * allow_numbers - allows numbers and common special characters - used for silicon/other weird things names
+  */
+
+/proc/sanitizeName(input, max_length = MAX_NAME_LEN, allow_numbers = FALSE)
+	if(!input)
+		return //Rejects the input if it is null
+
+	var/number_of_alphanumeric = 0
+	var/last_char_group = NO_CHARS_DETECTED
 	var/output = ""
+	var/t_len = length_char(input)
+	var/charcount = 0
 
-	for(var/i=1, i<=length_char(input), i++)
-		var/ascii_char = text2ascii_char(input,i)
-		switch(ascii_char)
-			// A  .. Z, А .. Я
-			if(65 to 90, 1040 to 1071)			//Uppercase Letters
-				output += ascii2text(ascii_char)
+	// This is a sanity short circuit, if the users name is three times the maximum allowable length of name
+	// We bail out on trying to process the name at all, as it could be a bug or malicious input and we dont
+	// Want to iterate all of it.
+	if(t_len > 3 * MAX_NAME_LEN)
+		return
+	for(var/char in splittext_char(input, ""))
+		var/char_code = text2ascii_char(char)
+		switch(char_code)
+			// A  .. Z
+			if(65 to 90)   //Uppercase Letters
 				number_of_alphanumeric++
-				last_char_group = 4
+				last_char_group = LETTERS_DETECTED
 
-			// a  .. z, а .. я
-			if(97 to 122, 1072 to 1103)			//Lowercase Letters
-				if(last_char_group<2 && force_first_letter_uppercase)
-					output += uppertext(ascii2text(ascii_char))	//Force uppercase first character
-				else
-					output += ascii2text(ascii_char)
+			// a  .. z
+			if(97 to 122)   //Lowercase Letters
 				number_of_alphanumeric++
-				last_char_group = 4
+				last_char_group = LETTERS_DETECTED
 
 			// 0  .. 9
-			if(48 to 57)			//Numbers
-				if(!last_char_group)		continue	//suppress at start of string
-				if(!allow_numbers)			continue
-				output += ascii2text(ascii_char)
+			if(48 to 57)   //Numbers
+				if(!allow_numbers)
+					continue
 				number_of_alphanumeric++
-				last_char_group = 3
+				last_char_group = NUMBERS_DETECTED
 
-			// '  -  .
-			if(39,45,46)			//Common name punctuation
-				if(!last_char_group) continue
-				output += ascii2text(ascii_char)
-				last_char_group = 2
+			// '   -   .
+			if(39, 45, 46)   //Common name punctuation
+				last_char_group = SYMBOLS_DETECTED
 
-			// ~   |   @  :  #  $  %  &  *  +
-			if(126,124,64,58,35,36,37,38,42,43)			//Other symbols that we'll allow (mainly for AI)
-				if(!last_char_group)		continue	//suppress at start of string
-				if(!allow_numbers)			continue
-				output += ascii2text(ascii_char)
-				last_char_group = 2
+			// ~    |    @   :   #   $   %   &   *   +
+			if(126, 124, 64, 58, 35, 36, 37, 38, 42, 43)			//Other symbols that we'll allow (mainly for AI)
+				if(!allow_numbers)
+					continue
+				last_char_group = SYMBOLS_DETECTED
 
 			//Space
 			if(32)
-				if(last_char_group <= 1)	continue	//suppress double-spaces and spaces at start of string
-				output += ascii2text(ascii_char)
-				last_char_group = 1
-			else
+				if(last_char_group == NO_CHARS_DETECTED || last_char_group == SPACES_DETECTED) //suppress double-spaces and spaces at start of string
+					continue
+				last_char_group = SPACES_DETECTED
+
+			if(127 to INFINITY) // cyrillic, chinese, and other unicode stuff
 				return
+			else
+				continue
+		output += char
+		charcount++
+		if(charcount >= max_length)
+			break
 
-	if(number_of_alphanumeric < 2)	return		//protects against tiny names like "A" and also names like "' ' ' ' ' ' ' '"
+	if(number_of_alphanumeric < 2)
+		return //protects against tiny names like "A" and also names like "' ' ' ' ' ' ' '"
 
-	if(last_char_group == 1)
-		output = copytext(output,1,length_char(output))	//removes the last character (in this case a space)
+	if(last_char_group == SPACES_DETECTED)
+		output = copytext_char(output, 1, -1) //removes the last character (in this case a space)
 
-	for(var/bad_name in list("space","floor","wall","r-wall","monkey","unknown","inactive ai","plating"))	//prevents these common metagamey names
-		if(cmptext(output,bad_name))	return	//(not case sensitive)
+	for(var/bad_name in list("space","floor","wall","r-wall","monkey","unknown","inactive ai"))	//prevents these common metagamey names
+		if(cmptext(output,bad_name))
+			return	//(not case sensitive)
 
 	return output
+
+#undef NO_CHARS_DETECTED
+#undef SPACES_DETECTED
+#undef SYMBOLS_DETECTED
+#undef NUMBERS_DETECTED
+#undef LETTERS_DETECTED
 
 //Returns null if there is any bad text in the string
 /proc/reject_bad_text(text, max_length=512)
@@ -390,6 +414,10 @@ proc/TextPreview(string, len=40)
 	t = replacetext(t, "\n", "<BR>")
 	t = replacetext(t, "\[center\]", "<center>")
 	t = replacetext(t, "\[/center\]", "</center>")
+	t = replacetext(t, "\[right\]", "<div style=\"text-align:right\">")
+	t = replacetext(t, "\[/right\]", "</div>")
+	t = replacetext(t, "\[left\]", "<div style=\"text-align:left\">")
+	t = replacetext(t, "\[/left\]", "</div>")
 	t = replacetext(t, "\[br\]", "<BR>")
 	t = replacetext(t, "\[b\]", "<B>")
 	t = replacetext(t, "\[/b\]", "</B>")
@@ -401,7 +429,7 @@ proc/TextPreview(string, len=40)
 	t = replacetext(t, "\[date\]", "[stationdate2text()]")
 	t = replacetext(t, "\[large\]", "<font size=\"4\">")
 	t = replacetext(t, "\[/large\]", "</font>")
-	t = replacetext(t, "\[field\]", "<span class=\"paper_field\"></span>")
+	t = replacetext(t, "\[field\]", "<!--paper_field-->")
 	t = replacetext(t, "\[h1\]", "<H1>")
 	t = replacetext(t, "\[/h1\]", "</H1>")
 	t = replacetext(t, "\[h2\]", "<H2>")
@@ -499,3 +527,8 @@ proc/TextPreview(string, len=40)
 		if (text2ascii(A, i) != text2ascii(B, i))
 			return FALSE
 	return TRUE
+
+/proc/counttext(haystack, needle, start = 0)
+	. = 0
+	while ((start = findtext(haystack, needle, start + 1)))
+		.++

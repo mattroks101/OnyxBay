@@ -122,6 +122,7 @@
 	origin_tech = list(TECH_BIO = 10, TECH_ILLEGAL = 5)
 	attack_verb = list("attacked", "slapped", "whacked")
 	relative_size = 10
+	foreign = TRUE
 	var/mob/living/carbon/brain/brainchan = null 	//notice me, biostructure-kun~ (✿˵•́ ‸ •̀˵)
 	var/const/damage_threshold_count = 10
 	var/last_regen_time = 0
@@ -218,6 +219,10 @@
 	QDEL_NULL(brainchan)
 
 	..()
+
+/obj/item/organ/internal/biostructure/after_organ_creation()
+	. = ..()
+	change_host(owner)
 
 /obj/item/organ/internal/biostructure/proc/change_host(atom/destination)
 	var/atom/source = src.loc
@@ -358,8 +363,8 @@
 	meat_type = /obj/item/weapon/reagent_containers/food/snacks/meat/human
 	pass_flags = PASS_FLAG_TABLE
 	harm_intent_damage = 20
-	melee_damage_lower = 15
-	melee_damage_upper = 20
+	melee_damage_lower = 7.5
+	melee_damage_upper = 12.5
 	attacktext = "bitten"
 	attack_sound = 'sound/weapons/bite.ogg'
 	var/cloaked = 0
@@ -369,6 +374,9 @@
 	see_in_dark = 8
 	meat_amount = 1
 	see_invisible = SEE_INVISIBLE_NOLIGHTING
+	mob_size = MOB_SMALL
+	can_pull_size = ITEM_SIZE_NORMAL
+	can_pull_mobs = MOB_PULL_SAME
 
 	minbodytemp = 0
 	maxbodytemp = 350
@@ -482,6 +490,10 @@
 	return
 
 /mob/living/simple_animal/hostile/little_changeling/proc/infest(mob/living/carbon/human/target as mob in oview(1))
+	var/datum/changeling/changeling = src.mind.changeling
+	if(!changeling)
+		return
+
 	if(src.stat == DEAD)
 		to_chat(src, "<span class='warning'>We cannot use this ability. We are dead.</span>")
 		return
@@ -506,7 +518,7 @@
 		to_chat(src, "<span class='warning'>This creature's DNA is ruined beyond useability!</span>")
 		return
 
-	if(src.mind.changeling.isabsorbing)
+	if(changeling.isabsorbing)
 		to_chat(src, "<span class='warning'>We are already infesting!</span>")
 		return
 
@@ -554,7 +566,7 @@
 	src.visible_message("<span class='danger'>[src] has latched onto \the [target].</span>", \
 						"<span class='warning'>We have latched onto \the [target].</span>")
 
-	src.mind.changeling.isabsorbing = 1
+	changeling.isabsorbing = 1
 	for(var/stage = 1, stage<=3, stage++)
 		switch(stage)
 			if(2)
@@ -569,7 +581,7 @@
 		feedback_add_details("changeling_powers","A[stage]")
 		if(!do_mob(src, target, 150))
 			to_chat(src, "<span class='warning'>Our infestation of [target] has been interrupted!</span>")
-			src.mind.changeling.isabsorbing = 0
+			changeling.isabsorbing = 0
 			target.getBruteLoss(39)
 			return
 
@@ -578,7 +590,7 @@
 
 	to_chat(target, "<span class='danger'><h3>Your neural network has been overtaken by \the [src]!</h3></span>")
 	to_chat(target,"<span class='deadsay'>You have died.</span>")
-	src.mind.changeling.isabsorbing = 0
+	changeling.isabsorbing = 0
 
 	if(istype(src,/mob/living/simple_animal/hostile/little_changeling/arm_chan))
 		if(!target.has_limb(BP_L_ARM))
@@ -643,6 +655,8 @@
 /mob/living/simple_animal/hostile/little_changeling/head_chan
 	maxHealth = 70
 	health = 70
+	melee_damage_lower = 17.5
+	melee_damage_upper = 22.5
 	name = "disfigured head"
 	icon_state = "gib_head"
 	icon_living = "gib_head"
@@ -651,10 +665,14 @@
 /mob/living/simple_animal/hostile/little_changeling/chest_chan
 	maxHealth = 150
 	health = 150
+	melee_damage_lower = 15.0
+	melee_damage_upper = 20.0
 	name = "disfigured chest"
 	icon_state = "gib_torso"
 	icon_living = "gib_torso"
 	meat_amount = 3
+	mob_size = MOB_MEDIUM
+	can_pull_size = ITEM_SIZE_LARGE
 
 /mob/living/simple_animal/hostile/little_changeling/leg_chan
 	maxHealth = 60
@@ -664,9 +682,10 @@
 	icon_living = "gib_leg"
 
 /mob/living/simple_animal/hostile/little_changeling/headcrab
-	maxHealth = 50
-	health = 50
-	harm_intent_damage = 15
+	maxHealth = 40
+	health = 40
+	melee_damage_lower = 5.0
+	melee_damage_upper = 7.5
 	speed = 0
 	name = "headcrab"
 	icon_state = "headcrab"

@@ -97,6 +97,16 @@
 		m.update_inv_r_hand()
 		m.update_inv_l_hand()
 		src.loc = null
+	if(maptext)
+		maptext = ""
+	if(istype(src.loc, /obj/item/weapon/storage))
+		var/obj/item/weapon/storage/storage = src.loc
+		storage.prepare_ui()
+		var/datum/storage_ui/s_ui = storage.storage_ui
+		if(s_ui)
+			s_ui.on_pre_remove(usr, src)
+		storage.contents -= src
+		storage.update_ui_after_item_removal()
 	return ..()
 
 /obj/item/device
@@ -157,7 +167,7 @@
 
 	src.loc = T
 
-/obj/item/examine(mob/user, distance = -1)
+/obj/item/examine(mob/user)
 	var/size
 	switch(src.w_class)
 		if(ITEM_SIZE_TINY)
@@ -221,7 +231,7 @@
 	//if(weapon_desc)
 	//	desc_comp += handle_weapon_desc()
 
-	return ..(user, distance, "", desc_comp)
+	return ..(user, "", desc_comp)
 
 /obj/item/attack_hand(mob/user as mob)
 	if (!user)
@@ -532,13 +542,7 @@ var/list/global/slot_flags_enumeration = list(
 			spark_system.start()
 			if(istype(P,/obj/item/projectile/beam))
 				visible_message(SPAN("warning", "\The [user] dissolves [P] with their [src.name]!"))
-				if(istype(user,/mob/living/carbon/human))
-					var/mob/living/carbon/human/H = user
-					if(src != H.get_active_hand())
-						H.poise -= P.damage/(src.mod_shield*1.25)
-						if(H.poise < P.damage/(src.mod_shield*1.25))
-							H.useblock_off()
-							shot_out(H, "knocked")
+				proj_poise_drain(user, P)
 				return PROJECTILE_FORCE_BLOCK // Beam reflections code is kinda messy, I ain't gonna touch it. ~Toby
 			else if(P.starting)
 				visible_message(SPAN("warning", "\The [user] reflects [P] with their [src.name]!"))
@@ -550,40 +554,51 @@ var/list/global/slot_flags_enumeration = list(
 
 				// redirect the projectile
 				P.redirect(new_x, new_y, curloc, user)
-				if(istype(user,/mob/living/carbon/human))
-					var/mob/living/carbon/human/H = user
-					if(src != H.get_active_hand())
-						H.poise -= P.damage/(src.mod_shield*2.0)
-						if(H.poise < P.damage/(src.mod_shield*2.0))
-							H.useblock_off()
-							shot_out(H, P, "knocked")
+				proj_poise_drain(user, P)
 				return PROJECTILE_CONTINUE // complete projectile permutation
 		else if(src.mod_shield >= 1.3)
 			if(P.armor_penetration > (25*src.mod_shield)-5)
 				visible_message(SPAN("warning", "\The [user] tries to block [P] with their [src.name]. <b>Not the best idea.</b>"))
 				return 0
 			visible_message(SPAN("warning", "\The [user] blocks [P] with their [src.name]!"))
-			if(istype(user,/mob/living/carbon/human))
-				var/mob/living/carbon/human/H = user
-				var/poisedamage = P.damage/(src.mod_shield*2.0)
-				if(P.damage_type == BRUTE)
-					poisedamage = P.damage+(P.agony/1.5)/(src.mod_shield*2.0)
-				H.poise -= poisedamage
-				if(H.poise < poisedamage)
-					H.useblock_off()
-					shot_out(H, "knocked")
+			proj_poise_drain(user, P, TRUE)
 			return PROJECTILE_FORCE_BLOCK
 	return 0
 
-/obj/item/proc/shot_out(mob/living/carbon/human/H, obj/item/projectile/P, msg = "shot", dist = 3)
+/obj/item/proc/proj_poise_drain(mob/user, obj/item/projectile/P, weak_shield = FALSE)
+	if(istype(user,/mob/living/carbon/human))
+		var/mob/living/carbon/human/H = user
+		var/poise_dmg = P.damage/(src.mod_shield*2.5)
+		if(weak_shield && P.damage_type == BRUTE)
+			poise_dmg = P.damage+(P.agony/1.5)/(src.mod_shield*2.5)
+		if(src != H.get_active_hand())
+			poise_dmg *= 2
+		H.poise -= poise_dmg
+		if(H.poise < poise_dmg)
+			shot_out(H, "knocked")
+
+/obj/item/proc/shot_out(mob/living/carbon/human/H, obj/item/projectile/P, msg = "shot", dist = 3) // item gets shot out of one's hands w/ a projectile
+	H.useblock_off()
 	H.poise -= 10
 	if(!canremove)
-		visible_message(SPAN("warning", "[H] blocks \a [P] with \the [src]!"))
+		visible_message(SPAN("warning", "[H] blocks [P] with \the [src]!"))
 		return
 	visible_message(SPAN("danger", "\The [src] gets [msg] out of [H]'s hands by \a [P]!"))
 	H.drop_from_inventory(src)
 	if(src && istype(loc,/turf))
-		throw_at(get_edge_target_turf(src,pick(GLOB.alldirs)),rand(1,dist),30)
+		throw_at(get_edge_target_turf(src,pick(GLOB.alldirs)),rand(1,dist),5)
+
+/obj/item/proc/knocked_out(mob/living/carbon/human/H, strong_knock = FALSE, dist = 2) // item gets knocked out of one's hands
+	H.useblock_off()
+	if(canremove)
+		H.drop_from_inventory(src)
+		if(src && istype(loc,/turf))
+			throw_at(get_edge_target_turf(src,pick(GLOB.alldirs)),rand(1,dist),1)
+		if(!strong_knock)
+			H.visible_message(SPAN("warning", "[H]'s [src] flies off!"))
+			return
+	H.visible_message(SPAN("warning", "[H] falls down, unable to keep balance!"))
+	H.apply_effect(3, WEAKEN, 0)
 
 /obj/item/proc/get_loc_turf()
 	var/atom/L = loc
@@ -704,11 +719,10 @@ GLOBAL_LIST_EMPTY(blood_overlay_cache)
 	if(GLOB.blood_overlay_cache["[icon]" + icon_state])
 		blood_overlay = GLOB.blood_overlay_cache["[icon]" + icon_state]
 		return
-	var/icon/I = new /icon(icon, icon_state)
-	I.Blend(new /icon('icons/effects/blood.dmi', rgb(255,255,255)), ICON_ADD) //fills the icon_state with white (except where it's transparent)
-	I.Blend(new /icon('icons/effects/blood.dmi', "itemblood"), ICON_MULTIPLY) //adds blood and the remaining white areas become transparant
-	blood_overlay = image(I)
-	GLOB.blood_overlay_cache["[icon]" + icon_state] = blood_overlay
+	var/image/blood = image(icon = 'icons/effects/blood.dmi', icon_state = "itemblood")
+	blood.filters += filter(type = "alpha", icon = icon(icon, icon_state))
+	GLOB.blood_overlay_cache["[icon]" + icon_state] = blood
+	blood_overlay = blood
 
 /obj/item/proc/showoff(mob/user)
 	for (var/mob/M in view(user))

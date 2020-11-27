@@ -4,6 +4,7 @@ var/list/gamemode_cache = list()
 	var/server_name = null					// server name (for world name / status)
 	var/server_id = null					// server id (used for separate bans storing)
 	var/server_suffix = 0					// generate numeric suffix based on server port
+	var/subserver_name = null               // subserver name in window title, ignored if null
 
 	var/log_ooc = 0							// Log OOC channel
 	var/log_access = 0						// Log login/logout
@@ -11,6 +12,7 @@ var/list/gamemode_cache = list()
 	var/log_admin = 0						// Log admin actions
 	var/log_asay = 0						// Log admin/mod say
 	var/log_debug = 1						// Log debug output
+	var/log_debug_verbose = 1               // Log verbose debug output
 	var/log_game = 0						// Log game events
 	var/log_vote = 0						// Log voting
 	var/log_whisper = 0						// Log client whisper
@@ -357,6 +359,9 @@ var/list/gamemode_cache = list()
 				if ("log_debug")
 					config.log_debug = 1
 
+				if ("log_debug_verbose")
+					config.log_debug_verbose = 1
+
 				if ("log_game")
 					config.log_game = 1
 
@@ -450,6 +455,9 @@ var/list/gamemode_cache = list()
 
 				if ("serversuffix")
 					config.server_suffix = 1
+
+				if ("subserver_name")
+					config.subserver_name = value
 
 				if ("hostedby")
 					config.hostedby = value

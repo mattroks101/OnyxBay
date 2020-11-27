@@ -1540,6 +1540,19 @@
 				data += "<A href='?src=\ref[src];AdminFaxViewPage=[page];paper_bundle=\ref[B]'>Page [page] - [pageobj.name]</A><BR>"
 
 			usr << browse(data, "window=[B.name]")
+		else if (istype(fax, /obj/item/weapon/complaint_folder))
+			var/data = "<meta charset=\"utf-8\">"
+			var/obj/item/weapon/complaint_folder/CF = fax
+			data += "<A href='?src=\ref[src];AdminFaxViewPaper=\ref[CF.main_form]'>Main form ([CF?.main_form?.signed_ckey])</A><BR>"
+			for (var/obj/item/weapon/paper/complaint_form/cf in CF.contents)
+				if (cf == CF.main_form)
+					continue
+				data += "<A href='?src=\ref[src];AdminFaxViewPaper=\ref[cf]'>[cf] ([cf.signed_ckey])</A><BR>"
+			if (CF.target_ckey == "???")
+				data += "<HR><BR>"
+				data += "<A href='?src=\ref[src];AdminFaxComplaintCkey=\ref[CF]'>Set target ckey manually</A><BR>"
+
+			usr << browse(data, "window=[CF.name]")
 		else
 			to_chat(usr, "<span class='warning'>The faxed item is not viewable. This is probably a bug, and should be reported on the tracker: [fax.type]</span>")
 	else if (href_list["AdminFaxViewPage"])
@@ -1555,8 +1568,22 @@
 			var/obj/item/weapon/photo/H = bundle.pages[page]
 			H.show(src.owner)
 		return
-
-	else if(href_list["FaxReply"])
+	else if (href_list["AdminFaxViewPaper"])
+		var/obj/item/weapon/paper/P = locate(href_list["AdminFaxViewPaper"])
+		ASSERT(istype(P))
+		P.show_content(src.owner, 1)
+		return
+	else if (href_list["AdminFaxComplaintCkey"])
+		var/obj/item/weapon/complaint_folder/CF = locate(href_list["AdminFaxComplaintCkey"])
+		ASSERT(istype(CF))
+		var/key = sanitize(input(usr, "Enter target ckey:", "Complaint ckey manual fix", "???") as text|null)
+		var/rank = sanitize(input(usr, "Enter target rank:", "Complaint rank manual fix", "???") as text|null)
+		if (key && rank)
+			CF.target_ckey = ckey(key)
+			CF.target_rank = rank
+			CF.postvalidate()
+		return
+	else if (href_list["FaxReply"])
 		var/mob/sender = locate(href_list["FaxReply"])
 		var/obj/machinery/photocopier/faxmachine/fax = locate(href_list["originfax"])
 		var/replyorigin = href_list["replyorigin"]
@@ -2001,6 +2028,40 @@
 					to_chat(usr, "Failed to add language '[lang2toggle]' from \the [M]!")
 
 			show_player_panel(M)
+	
+	else if(href_list["listen_tape_sound"])
+		var/sound/S = sound(locate(href_list["listen_tape_sound"]))
+		if(!S) return
+
+		S.channel = 703
+		sound_to(usr, S)
+		to_chat(usr, "<B><A HREF='?_src_=holder;stop_tape_sound=1'>Stop listening</A></B>")
+	
+	else if(href_list["stop_tape_sound"])
+		var/sound/S = sound(null)
+		S.channel = 703
+		sound_to(usr, S)
+
+	else if(href_list["wipe_tape_data"])
+		var/obj/item/music_tape/tape = locate(href_list["wipe_tape_data"])
+		if(!tape.track)
+			to_chat(usr, "This [tape] have no data or already is wiped. Report it to developers.")
+			return
+
+		if(alert("Wipe data written by [(tape.uploader_ckey) ? tape.uploader_ckey : "UNKNOWN PLAYER"]?",,"Yes", "No") == "Yes")
+			if(istype(tape.loc, /obj/machinery/media/jukebox))
+				var/obj/machinery/media/jukebox/J = tape.loc
+				if(J.current_track == tape.track)
+					J.StopPlaying()
+					J.current_track = null
+
+			if(istype(tape.loc, /obj/item/music_player))
+				var/obj/item/music_player/mp = tape.loc
+				if(mp.mode)
+					mp.StopPlaying()
+
+			tape.ruin()
+			tape.SetName("burned [initial(tape.name)]")
 
 	// player info stuff
 
@@ -2032,8 +2093,45 @@
 			show_player_info(ckey)
 		return
 
+	if(href_list["ert_action"])
+		if(href_list["obj_completed"])
+			var/datum/objective/objective = locate(href_list["obj_completed"])
+			ASSERT(istype(objective))
+			objective.completed = !objective.completed
+		else if(href_list["obj_add"])
+			var/new_obj_type = input("Select objective type:", "Objective type", null) as null|anything in list("resolve emergency", "custom")
+			switch(new_obj_type)
+				if("resolve emergency")
+					var/datum/objective/ert_station_save/basic = new()
+					GLOB.ert.add_global_objective(basic)
+				else if("custom")
+					var/text = input("Write down the ERT mission", "ERT mission", null)
+					if(text)
+						var/datum/objective/ert_custom/custom = new
+						custom.explanation_text = text
+						GLOB.ert.add_global_objective(custom)
+		else if (href_list["obj_delete"])
+			var/datum/objective/objective = locate(href_list["obj_delete"])
+			ASSERT(istype(objective))
+			GLOB.ert.remove_global_objective(objective)
+		else if(href_list["obj_announce"])
+			for(var/datum/mind/player in GLOB.ert.current_antagonists)
+				var/obj_count = 1
+				to_chat(player.current, SPAN_NOTICE("Your current objectives:"))
+				for(var/datum/objective/objective in player.objectives)
+					to_chat(player.current, "<B>Objective #[obj_count]</B>: [objective.explanation_text]")
+					obj_count++
+		else if(href_list["max_cap_change"])
+			var/change_num = input("Max cap ERT", "Enter a number") as null|num
+			if(isnull(change_num)) return
+			change_num = round(change_num)
+			if(change_num <= 0) return
+			GLOB.ert.hard_cap = change_num
+		edit_mission()
+		return
+
 	watchlist.AdminTopicProcess(src, href_list)
-	EAMS_AdminTopicProcess(src, href_list)
+	IAAJ_AdminTopicProcess(src, href_list)
 	SpeciesIngameWhitelist_AdminTopicProcess(src, href_list)
 
 

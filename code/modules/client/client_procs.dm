@@ -54,7 +54,6 @@
 
 		if (!(asset_cache_job in completed_asset_jobs))
 			completed_asset_jobs += asset_cache_job
-			log_debug_verbose("\[ASSETS\] Job #[asset_cache_job] is completed (client: [ckey]).")
 			return
 
 	if (config.minutetopiclimit)
@@ -88,8 +87,7 @@
 			return
 
 	//Logs all hrefs
-	if(config && config.log_hrefs && GLOB.world_hrefs_log)
-		WRITE_FILE(GLOB.world_hrefs_log, "<small>[time2text(world.timeofday,"hh:mm")] [src] (usr:[usr])</small> || [hsrc ? "[hsrc] " : ""][href]<br>")
+	log_href("[src] (usr:[usr]) || [hsrc ? "[hsrc] " : ""][href]")
 
 	// ask BYOND client to stop spamming us with assert arrival confirmations (see byond bug ID:2256651)
 	if (asset_cache_job && (asset_cache_job in completed_asset_jobs))
@@ -194,7 +192,7 @@
 		src.preload_rsc = pick(config.resource_urls)
 	else src.preload_rsc = 1 // If config.resource_urls is not set, preload like normal.
 
-	to_chat(src, "<span class='warning'>If the title screen is black, resources are still downloading. Please be patient until the title screen appears.</span>")
+	DIRECT_OUTPUT(src, "<span class='warning'>If the title screen is black and chat is broken, resources are still downloading. Please be patient until the title screen appears.</span>")
 	GLOB.clients += src
 	GLOB.ckey_directory[ckey] = src
 
@@ -224,7 +222,7 @@
 		return
 
 	// Load EAMS data
-	EAMS_CollectData()
+	SSeams.CollectDataForClient(src)
 
 	//preferences datum - also holds some persistant data for the client (because we may as well keep these datums to a minimum)
 	prefs = SScharacter_setup.preferences_datums[ckey]
@@ -237,8 +235,8 @@
 	. = ..()	//calls mob.Login()
 
 	if(byond_version < MIN_CLIENT_VERSION)
-		to_chat(src, "<b><center><font size='5' color='red'>Your <font color='blue'>BYOND</font> version is too out of date!</font><br>\
-		<font size='3'>Please update it to [MIN_CLIENT_VERSION].</font></center>")
+		src << "<b><center><font size='5' color='red'>Your <font color='blue'>BYOND</font> version is too out of date!</font><br>\
+		<font size='3'>Please update it to [MIN_CLIENT_VERSION].</font></center>"
 		qdel(src)
 		return
 
@@ -469,7 +467,6 @@
 	spawn (10) //removing this spawn causes all clients to not get verbs.
 		if(!src) // client disconnected
 			return
-		log_debug_verbose("\[ASSETS\] Start sending resources for [ckey].")
 
 		var/list/priority_assets = list()
 		var/list/other_assets = list()
@@ -486,10 +483,7 @@
 
 		for(var/datum/asset/D in (priority_assets + other_assets))
 			if (!D.send_slow(src)) //Precache the client with all other assets slowly, so as to not block other browse() calls
-				log_debug_verbose("\[ASSETS\] Failed to sent resources to [ckey]![src ? " Reason is client was disconnected!" : ""]")
 				return
-
-		log_debug_verbose("\[ASSETS\] Resources for [ckey] were sended!")
 
 mob/proc/MayRespawn()
 	return 0

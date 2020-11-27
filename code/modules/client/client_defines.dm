@@ -63,3 +63,5 @@
 	var/related_accounts_cid = "Requires database"
 
 	var/obj/screen/tooltip = null
+	//used for initial centering of saywindow
+	var/first_say = TRUE

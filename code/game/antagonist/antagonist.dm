@@ -1,9 +1,9 @@
 /datum/antagonist
 
 	// Text shown when becoming this antagonist.
-	var/list/restricted_jobs = 		list()   // Jobs that cannot be this antagonist at roundstart (depending on config)
-	var/list/protected_jobs = 		list()   // As above.
-	var/list/blacklisted_jobs =		list()   // Jobs that can NEVER be this antagonist
+	var/list/restricted_jobs            = list()   // Jobs that cannot be this antagonist at roundstart
+	var/list/additional_restricted_jobs = list()   // Mostly security jobs which can be restricted in addition via config
+	var/list/blacklisted_jobs           = list()   // Jobs that can NEVER be this antagonist
 
 	// Strings.
 	var/welcome_text = "Cry havoc and let slip the dogs of war!"
@@ -90,7 +90,7 @@
 	if(!role_text_plural)
 		role_text_plural = role_text
 	if(config.protect_roles_from_antagonist)
-		restricted_jobs |= protected_jobs
+		restricted_jobs |= additional_restricted_jobs
 	if(antaghud_indicator)
 		if(!GLOB.hud_icon_reference)
 			GLOB.hud_icon_reference = list()
@@ -107,6 +107,8 @@
 	// Prune restricted status. Broke it up for readability.
 	// Note that this is done before jobs are handed out.
 	for(var/datum/mind/player in mode.get_players_for_role(id))
+		if (!player.current.client)
+			continue
 		if(ghosts_only && !(isghostmind(player) || isnewplayer(player.current)))
 			log_debug("[key_name(player)] is not eligible to become a [role_text]: Only ghosts may join as this role!")
 		else if(config.use_age_restriction_for_antags && player.current.client.player_age < minimum_player_age)
@@ -116,14 +118,16 @@
 		else if (player in pending_antagonists)
 			log_debug("[key_name(player)] is not eligible to become a [role_text]: They have already been selected for this role!")
 		else if(!can_become_antag(player))
+			log_debug("[key_name(player)], can_become_antag returned FALSE!")
 			log_debug("[key_name(player)] is not eligible to become a [role_text]: They are blacklisted for this role!")
 		else if(player_is_antag(player))
 			log_debug("[key_name(player)] is not eligible to become a [role_text]: They are already an antagonist!")
 		else if(player.current.stat == UNCONSCIOUS)
 			log_debug("[key_name(player)] is not eligible to become a [role_text]: They are unconscious!")
-		else if(istype(player.current, /mob/living/simple_animal))
-			log_debug("[key_name(player)] is not eligible to become a [role_text]: They are simple animal!")
+		else if(!is_mob_type_allowed(player))
+			log_debug("[key_name(player)] is not eligible to become a [role_text]: '[player.current.type]' is not allowed type of mob!")
 		else
+			log_debug("[key_name(player)] is eligible to become a [role_text]")
 			candidates |= player
 
 	return candidates
@@ -148,8 +152,8 @@
 			log_debug("[key_name(player)] is not eligible to become a [role_text]: They are already an antagonist!")
 		else if(player.current.stat == UNCONSCIOUS)
 			log_debug("[key_name(player)] is not eligible to become a [role_text]: They are unconscious!")
-		else if(istype(player.current, /mob/living/simple_animal))
-			log_debug("[key_name(player)] is not eligible to become a [role_text]: They are simple animal!")
+		else if(!is_mob_type_allowed(player))
+			log_debug("[key_name(player)] is not eligible to become a [role_text]: '[player.current.type]' is not allowed type of mob!")
 		else
 			potential_candidates |= player
 
@@ -185,7 +189,8 @@
 		return 0
 
 	var/datum/mind/player = pending_antagonists[1]
-	if(!add_antagonist(player,0,0,0,1,1))
+	pending_antagonists -= player
+	if(!add_antagonist(player, ignore_role=FALSE, do_not_equip=FALSE, move_to_spawn=FALSE, do_not_announce=TRUE, preserve_appearance=TRUE))
 		log_debug("Could not auto-spawn a [role_text], failed to add antagonist.")
 		return 0
 
@@ -251,7 +256,7 @@
 
 	for(var/datum/mind/player in pending_antagonists)
 		pending_antagonists -= player
-		add_antagonist(player,0,0,1)
+		add_antagonist(player, ignore_role=FALSE, do_not_equip=FALSE, move_to_spawn=TRUE)
 
 	reset_antag_selection()
 
@@ -274,3 +279,18 @@
 	if (!check_rights(R_ADMIN))
 		href_exploit(usr.ckey, href)
 		return TRUE
+
+/datum/antagonist/proc/is_mob_type_allowed(datum/mind/player)
+	ASSERT(player)
+	ASSERT(player.current)
+	if (istype(player.current, /mob/living/carbon/human))
+		return TRUE
+	if (istype(player.current, /mob/living/silicon/robot))
+		return TRUE
+	if (istype(player.current, /mob/living/silicon/ai))
+		return TRUE
+	if (isghostmind(player))
+		return TRUE
+	if (istype(player.current, /mob/new_player))
+		return TRUE
+	return FALSE

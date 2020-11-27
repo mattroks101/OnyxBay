@@ -35,9 +35,9 @@
 
 	if(ishuman(user_mob))
 		var/mob/living/carbon/human/user_human = user_mob
-		if(blood_DNA && user_human.species.blood_mask)
-			var/image/bloodsies	= overlay_image(user_human.species.blood_mask, blood_overlay_type, blood_color, RESET_COLOR)
-			ret.overlays	+= bloodsies
+		if(blood_DNA && user_human.body_build.blood_icon)
+			var/image/bloodsies	= overlay_image(user_human.body_build.blood_icon, blood_overlay_type, blood_color, RESET_COLOR)
+			ret.overlays += bloodsies
 
 	if(accessories.len)
 		for(var/obj/item/clothing/accessory/A in accessories)
@@ -764,16 +764,16 @@ BLIND     // can't see anything
 
 
 /obj/item/clothing/under/examine(mob/user)
-	. = ..(user)
+	. = ..()
 	switch(src.sensor_mode)
 		if(0)
-			to_chat(user, "Its sensors appear to be disabled.")
+			. += "\nIts sensors appear to be disabled."
 		if(1)
-			to_chat(user, "Its binary life sensors appear to be enabled.")
+			. += "\nIts binary life sensors appear to be enabled."
 		if(2)
-			to_chat(user, "Its vital tracker appears to be enabled.")
+			. += "\nIts vital tracker appears to be enabled."
 		if(3)
-			to_chat(user, "Its vital tracker and tracking beacon appear to be enabled.")
+			. += "\nIts vital tracker and tracking beacon appear to be enabled."
 
 /obj/item/clothing/under/proc/set_sensors(mob/user as mob)
 	var/mob/M = user

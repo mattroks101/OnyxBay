@@ -80,6 +80,10 @@
 	name = "Waste Disposal"
 	icon_state = "disposal"
 
+/area/maintenance/disposal/underground
+	name = "Underground Waste Disposal"
+	icon_state = "disposal"
+
 /area/maintenance/incinerator
 	name = "\improper Incinerator"
 	icon_state = "disposal"
@@ -163,6 +167,9 @@
 	name = "\improper Holodeck - Space"
 	has_gravity = 0
 	sound_env = SPACE
+
+/area/holodeck/source_chess
+	name = "\improper Holodeck - Chess Field"
 
 // Construction Site
 
@@ -297,7 +304,7 @@
 /area/medical/morgue
 	name = "\improper Morgue"
 	icon_state = "morgue"
-	ambience = list('sound/ambience/morgue/ambimo1.ogg','sound/ambience/morgue/ambimo2.ogg')
+	ambience = list('sound/ambience/morgue/ambimo1.ogg')
 
 /area/medical/sleeper
 	name = "\improper Emergency Treatment Centre"
@@ -455,6 +462,9 @@
 	name = "\improper Security - Morgue"
 	icon_state = "brigmorgue"
 
+/area/security/brigswstorage
+	name = "\improper Security - S-W Storage"
+	icon_state = "brigswstorage"
 /area/security/evidence
 	name = "\improper Security - Evidence Storage"
 	icon_state = "evidence"
@@ -506,6 +516,10 @@
 /area/janitor
 	name = "\improper Custodial Closet"
 	icon_state = "janitor"
+
+/area/officesupplies
+	name = "\improper Office Supplies"
+	icon_state = "law"
 
 // Tcomm
 /area/tcommsat/
