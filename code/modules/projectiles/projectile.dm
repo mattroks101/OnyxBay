@@ -10,7 +10,6 @@
 	anchored = 1 //There's a reason this is here, Mport. God fucking damn it -Agouri. Find&Fix by Pete. The reason this is here is to stop the curving of emitter shots.
 	pass_flags = PASS_FLAG_TABLE
 	mouse_opacity = 0
-	filters = filter(type = "blur", size = 1)
 	var/bumped = 0		//Prevents it from hitting more than one guy at once
 	var/def_zone = ""	//Aiming at
 	var/mob/firer = null//Who shot it
@@ -48,7 +47,7 @@
 	var/drowsy = 0
 	var/agony = 0
 	var/embed = 0 // whether or not the projectile can embed itself in the mob
-	var/penetration_modifier = 0.2 //How much internal damage this projectile can deal, as a multiplier.
+	var/penetration_modifier = 0.05 //How much internal damage this projectile can deal, as a multiplier.
 	var/tasing = 0 //Whether or not it will stun the target once they reach the pain limit
 
 	var/hitscan = 0		// whether the projectile should be hitscan
@@ -81,6 +80,8 @@
 		anchored = 0
 		mouse_opacity = 1
 	else animate_movement = NO_STEPS
+
+	filters = filter(type = "blur", size = 1)
 	. = ..()
 
 /obj/item/projectile/Destroy()
